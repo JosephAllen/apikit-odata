@@ -21,6 +21,6 @@ fun payloadKeys(): Object =
 
 //Creates string for the where clause `fieldX` = 'fieldValue'
 fun whereKeys(): String =
-  (payloadKeys() pluck (value, key) -> "`$(key)` = '$(value)'") joinBy " AND "
+  (payloadKeys() pluck (value, key) -> "[$(key)] = '$(value)'") joinBy " AND "
 ---
 "SELECT " ++ (entityFields joinBy ", ") ++ " FROM $(remoteEntityName) WHERE " ++ (whereKeys())

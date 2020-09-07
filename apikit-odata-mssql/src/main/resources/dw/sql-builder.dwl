@@ -6,7 +6,7 @@ output application/java
 
 var entityFields: Array<String> = OData::fields(vars.odata)
 
-//APIkit OData Service creates a variable that contains the keys of your entity
+//APIkit OData Service creates a variable that contains the keys of the entity
 var keys: String = OData::keyNames(vars.odata)
 
 //APIkit OData Service creates a variable that contains the table's name
@@ -54,14 +54,17 @@ fun columnValues(): String =
 fun getUpdates(): String =
   (payload pluck (value, key) -> "[$(key)] = '$(value)'") joinBy ", "
 
+fun orderBy(): String =
+  " ORDER BY " ++ (keys)
+
 //This function transforms the skip and top OData filters into MySQL LIMIT format.
 fun toSQLSkipAndTop(top, skip): String =
   if (top != "" and skip != "")
-    " LIMIT $(top) OFFSET $(skip)"
+    orderBy() ++ " OFFSET $(skip) ROWS FETCH NEXT $(top) ROWS ONLY"
   else if (top == "" and skip != "")
-    " LIMIT 2147483647 OFFSET $(skip)"
+    orderBy() ++ " OFFSET 0 ROWS FETCH NEXT 2147483647 ROWS ONLY"
   else if (top != "" and skip == "")
-    " LIMIT $(top)"
+    orderBy() ++ " OFFSET 0 ROWS FETCH NEXT $(top) ROWS ONLY"
   else
     ""
 
@@ -87,4 +90,7 @@ fun SQL(): String =
     case "PUT" -> "UPDATE " ++ "$(remoteEntityName)" ++ " SET $(getUpdates())"
   }
 ---
-SQL() ++ whereClause() ++ toSQLSkipAndTop(top, skip)
+SQL() ++ whereClause() ++ (if (attributes.method == "GET")
+  toSQLSkipAndTop(top, skip)
+else
+  "")
