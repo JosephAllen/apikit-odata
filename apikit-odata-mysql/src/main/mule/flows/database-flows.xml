@@ -26,10 +26,16 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
             doc:name="Check Response "
             doc:id="e350081c-13d8-4d92-9d08-b19ab3c9b421">
             <when expression="#[payload == 0]">
-                <flow-ref doc:name="http-404-not-found-flow" doc:id="bac56bea-982a-4979-9475-9d69db72cb2b" name="http-404-not-found-flow"/>
+                <flow-ref
+                    doc:name="http-404-not-found-flow"
+                    doc:id="bac56bea-982a-4979-9475-9d69db72cb2b"
+                    name="http-404-not-found-flow" />
             </when>
             <otherwise>
-                <flow-ref doc:name="http-204-ok-flow" doc:id="dad4b241-3f0f-4019-8927-6fabf59cd583" name="http-204-ok-flow"/>
+                <flow-ref
+                    doc:name="http-204-ok-flow"
+                    doc:id="dad4b241-3f0f-4019-8927-6fabf59cd583"
+                    name="http-204-ok-flow" />
             </otherwise>
         </choice>
     </sub-flow>
@@ -61,10 +67,16 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
             doc:name="Check Response"
             doc:id="b22287fc-a25d-46dd-86e2-46432ccf1c2a">
             <when expression="#[sizeOf(payload) == 0]">
-                <flow-ref doc:name="http-404-not-found-flow" doc:id="071dd45e-c1aa-4e53-ba88-b3c76b94df82" name="http-404-not-found-flow"/>
+                <flow-ref
+                    doc:name="http-404-not-found-flow"
+                    doc:id="071dd45e-c1aa-4e53-ba88-b3c76b94df82"
+                    name="http-404-not-found-flow" />
             </when>
             <otherwise>
-                <flow-ref doc:name="build-odata-entries-flow" doc:id="e1a8f8dd-3a51-4c86-b41a-35e669b88061" name="build-odata-entries-flow"/>
+                <flow-ref
+                    doc:name="build-odata-entries-flow"
+                    doc:id="e1a8f8dd-3a51-4c86-b41a-35e669b88061"
+                    name="build-odata-entries-flow" />
             </otherwise>
         </choice>
     </sub-flow>
@@ -95,7 +107,8 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
             doc:name="Build SQL Statement"
             doc:id="cd3d9824-e5ce-4849-8e85-ae618dfc1612">
             <ee:message>
-                <ee:set-payload resource="dw/post-upsert-select.dwl" />
+                <ee:set-payload
+                    resource="dw/post-upsert-select.dwl" />
             </ee:message>
         </ee:transform>
         <db:select
@@ -106,10 +119,10 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
             <db:sql>#[payload]
             </db:sql>
         </db:select>
-        <flow-ref doc:name="build-odata-entries-flow" doc:id="533fa9b7-bf9e-4e96-8301-0ec98ec9534a" name="build-odata-entries-flow"/>
-    </sub-flow>
-    <sub-flow name="database-flowsSub_Flow" doc:id="dd7f3441-8fa5-4b3d-b39d-2cc11155dbfd">
-        <set-variable value="#[payload.CustomerID]" doc:name="Set CustomerID" doc:id="abd9cf22-e32d-431b-a4be-8d738bcfa20e" variableName="id" />
+        <flow-ref
+            doc:name="build-odata-entries-flow"
+            doc:id="533fa9b7-bf9e-4e96-8301-0ec98ec9534a"
+            name="build-odata-entries-flow" />
     </sub-flow>
     <sub-flow name="database-update-flow">
         <set-variable
@@ -138,10 +151,16 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
             doc:name="Check Response"
             doc:id="98ce1f8b-4dc8-487f-a243-59c27b332602">
             <when expression="#[payload.affectedRows == 0]">
-                <flow-ref doc:name="http-404-not-found-flow" doc:id="6147d3b1-68c5-4cc6-be1e-4a292fe348d3" name="http-404-not-found-flow"/>
+                <flow-ref
+                    doc:name="http-404-not-found-flow"
+                    doc:id="6147d3b1-68c5-4cc6-be1e-4a292fe348d3"
+                    name="http-404-not-found-flow" />
             </when>
             <otherwise>
-                <flow-ref doc:name="http-204-ok-flow" doc:id="8762248f-1674-41d1-bc5a-eb574811e253" name="http-204-ok-flow"/>
+                <flow-ref
+                    doc:name="http-204-ok-flow"
+                    doc:id="8762248f-1674-41d1-bc5a-eb574811e253"
+                    name="http-204-ok-flow" />
             </otherwise>
         </choice>
     </sub-flow>
@@ -159,26 +178,20 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
                     doc:id="bd360717-7475-4adb-97b7-37d9b39bf508">
                     <ee:message>
                         <ee:set-payload><![CDATA[%dw 2.0
+import modules::OData
 output application/java
 
-// This DataWeave generates a MySQL Select Query from your metadata
+// This DataWeave generates a SQL Select Query from the metadata
 
 // APIkit OData Service creates a variable that contains the table's name 
-var remoteEntityName = vars.odata.remoteEntityName match {
-    case remoteEntityName is String -> remoteEntityName
-    else -> ""  
-}
-
+var remoteEntityName = OData::remoteEntityName(vars.odata)
 ---
-
-"SELECT count(*) FROM $remoteEntityName"
- 
-]]>
+"SELECT COUNT(*) FROM $remoteEntityName"]]>
                         </ee:set-payload>
                     </ee:message>
                 </ee:transform>
                 <db:select
-                    doc:name="Select"
+                    doc:name="Execute SQL"
                     doc:id="588a3afb-54b1-434c-bb21-a1bd6d680fae"
                     config-ref="api-database-config">
                     <db:sql>#[payload]</db:sql>
@@ -186,10 +199,14 @@ var remoteEntityName = vars.odata.remoteEntityName match {
             </when>
         </choice>
     </sub-flow>
-    <sub-flow name="build-odata-entries-flow" doc:id="20b90551-18c5-4e08-b106-c5d6eab1d20e" >
-        <ee:transform doc:name="Build entries Object" doc:id="ae8aea15-b4c5-46e2-ad45-c9dc75e494d4" >
-            <ee:message >
-                <ee:set-payload ><![CDATA[%dw 2.0
+    <sub-flow
+        name="build-odata-entries-flow"
+        doc:id="20b90551-18c5-4e08-b106-c5d6eab1d20e">
+        <ee:transform
+            doc:name="Build entries Object"
+            doc:id="ae8aea15-b4c5-46e2-ad45-c9dc75e494d4">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
@@ -198,12 +215,31 @@ output application/json
             </ee:message>
         </ee:transform>
     </sub-flow>
-    <sub-flow name="http-204-ok-flow" doc:id="85ff495f-b3ac-4f31-84d1-57382fb7e880" >
-        <set-variable value="204" doc:name="Set HTTP Status 204 (OK)" doc:id="24b9ae5d-ce9a-4231-8e66-44a17022b678" variableName="httpStatus" />
-        <set-payload value="#[null]" doc:name="Set Payload to null" doc:id="59f30584-58d9-49a9-8f6c-7548bc1f79e6" />
+    <sub-flow
+        name="http-204-ok-flow"
+        doc:id="85ff495f-b3ac-4f31-84d1-57382fb7e880">
+        <set-variable
+            value="204"
+            doc:name="Set HTTP Status 204 (OK)"
+            doc:id="24b9ae5d-ce9a-4231-8e66-44a17022b678"
+            variableName="httpStatus" />
+        <set-payload
+            value="#[null]"
+            doc:name="Set Payload to null"
+            doc:id="59f30584-58d9-49a9-8f6c-7548bc1f79e6" />
     </sub-flow>
-    <sub-flow name="http-404-not-found-flow" doc:id="bc86f8a1-e8ee-478b-a3a4-7eb78af1ec7b" >
-        <set-variable value="404" doc:name="Set HTTP Status 404 (Not Found)" doc:id="37a47d86-3fb3-485f-8e99-163f4b955d01" variableName="httpStatus" />
-        <set-payload value='{ "message": "Resource not found" }' doc:name="Resource not found" doc:id="5161ad0b-e785-4158-8d49-22bd711a53b6" mimeType="application/json" />
+    <sub-flow
+        name="http-404-not-found-flow"
+        doc:id="bc86f8a1-e8ee-478b-a3a4-7eb78af1ec7b">
+        <set-variable
+            value="404"
+            doc:name="Set HTTP Status 404 (Not Found)"
+            doc:id="37a47d86-3fb3-485f-8e99-163f4b955d01"
+            variableName="httpStatus" />
+        <set-payload
+            value='{ "message": "Resource not found" }'
+            doc:name="Resource not found"
+            doc:id="5161ad0b-e785-4158-8d49-22bd711a53b6"
+            mimeType="application/json" />
     </sub-flow>
 </mule>
