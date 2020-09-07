@@ -16,12 +16,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         name="api-database-config"
         doc:name="Database Config"
         doc:id="aec65575-b555-4d64-864f-30972ed27893">
-        <db:my-sql-connection
-            host="${ds.db.host}"
-            port="${ds.db.port}"
-            user="${ds.db.user}"
-            password="${ds.db.password}"
-            database="${ds.db.database}" />
+        <db:mssql-connection host="${ds.db.host}" port="${ds.db.port}" user="${ds.db.user}" password="${ds.db.password}" databaseName="${ds.db.database}"/>
     </db:config>
     <db:config
         name="api-database-config-mysql"
