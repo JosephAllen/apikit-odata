@@ -38,13 +38,13 @@ var id: Strings = attributes.uriParams.CustomerID match {
 //Create the WHERE clause portion of a SQL Statement
 fun whereClause(): String =
   if (sizeOf(attributes.uriParams) > 0)
-    " WHERE " ++ ((attributes.uriParams pluck (value, key) -> "`$(key)` = '$(value)'") joinBy " AND ")
+    " WHERE " ++ ((attributes.uriParams pluck (value, key) -> "$(key) = '$(value)'") joinBy " AND ")
   else
     ""
 
 //Gets keys from the payload Object
 fun columns(): String =
-  (keySet(payload) map "`$($)`") joinBy ", "
+  (keySet(payload) map "[$($)]") joinBy ", "
 
 //Gets values from the payload Object
 fun columnValues(): String =
@@ -52,7 +52,7 @@ fun columnValues(): String =
 
 //Transforms the payload into something like myKey1 = 'myValue1', myKey2 = 'myValue2'
 fun getUpdates(): String =
-  (payload pluck (value, key) -> "`$(key)` = '$(value)'") joinBy ", "
+  (payload pluck (value, key) -> "[$(key)] = '$(value)'") joinBy ", "
 
 //This function transforms the skip and top OData filters into MySQL LIMIT format.
 fun toSQLSkipAndTop(top, skip): String =
@@ -72,7 +72,7 @@ fun selectedFields(): String =
   if (customSelect != "")
     (customSelect splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ",")
   else
-    entityFields map "`$($)`" joinBy ", "
+    entityFields map "[$($)]" joinBy ", "
 
 //case "GET" -> "SELECT " ++ generateSqlFields(customSelect) ++ " FROM $(remoteEntityName)"
 /*var generateSqlFields = (select) -> ((if (select != "")
