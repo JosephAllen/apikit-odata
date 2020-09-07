@@ -1,25 +1,18 @@
 %dw 2.0
 import * from dw::core::Objects
+import modules::OData
 
 output application/java  
 
-//APIkit OData Service creates a variable that contains the fields of your entity. It's a list of string (List<String>)
-var entityFields: Array<String> = vars.odata.fields match {
-  case fields is Array<String> -> fields
-  else -> []
-}
+var odata = vars.odata
+
+var entityFields: Array<String> = OData::fields(odata)
 
 //APIkit OData Service creates a variable that contains the keys of your entity
-var keys: String = vars.odata.keyNames match {
-  case keyNames is String -> keyNames
-  else -> ""
-}
+var keys: String = OData::keyNames(odata)
 
 //APIkit OData Service creates a variable that contains the table's name
-var remoteEntityName: String = vars.odata.remoteEntityName match {
-  case remoteEntityName is String -> remoteEntityName
-  else -> ""
-}
+var remoteEntityName: String = OData::remoteEntityName(odata)
 
 //APIkit OData Service puts your oData filters into the queryParams
 var filters = attributes.queryParams
@@ -44,24 +37,26 @@ var id: Strings = attributes.uriParams.CustomerID match {
   else -> ""
 }
 
+//Create the WHERE clause portion of a SQL Statement
 fun whereClause(): String =
   if (sizeOf(attributes.uriParams) > 0)
     " WHERE " ++ ((attributes.uriParams pluck (value, key) -> "`$(key)` = '$(value)'") joinBy " AND ")
   else
     ""
 
+//Gets keys from the payload Object
 fun columns(): String =
   (keySet(payload) map "`$($)`") joinBy ", "
 
-//Gets  values from the paylioad Obejct
+//Gets values from the payload Object
 fun columnValues(): String =
   (valueSet(payload) map "'$($)'") joinBy ", "
 
-//Transform your payload (myKey1: myValue1, myKey2: myValue2) into something like myKey1 = 'myValue1', myKey2 = 'myValue2'
+//Transforms the payload into something like myKey1 = 'myValue1', myKey2 = 'myValue2'
 fun getUpdates(): String =
   (payload pluck (value, key) -> "`$(key)` = '$(value)'") joinBy ", "
 
-//This function transforms your skip and top OData filters into MySQL LIMIT format.
+//This function transforms the skip and top OData filters into MySQL LIMIT format.
 fun toSQLSkipAndTop(top, skip): String =
   if (top != "" and skip != "")
     " LIMIT $(top) OFFSET $(skip)"
