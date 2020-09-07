@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+    xmlns:db="http://www.mulesoft.org/schema/mule/db"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow name="database-delete-flow">
+        <ee:transform
+            doc:name="Build SQL Statement"
+            doc:id="ef5b639f-e795-434b-b3d8-589b16d3f163">
+            <ee:message>
+                <ee:set-payload resource="dw/sql-builder.dwl" />
+            </ee:message>
+        </ee:transform>
+        <db:delete
+            doc:name="Execute SQL"
+            doc:id="78e75472-17c4-4ae4-8945-ffc1727e24ca"
+            config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:delete>
+        <choice
+            doc:name="Check Response "
+            doc:id="e350081c-13d8-4d92-9d08-b19ab3c9b421">
+            <when expression="#[payload == 0]">
+                <flow-ref
+                    doc:name="http-404-not-found-flow"
+                    doc:id="bac56bea-982a-4979-9475-9d69db72cb2b"
+                    name="http-404-not-found-flow" />
+            </when>
+            <otherwise>
+                <flow-ref
+                    doc:name="http-204-ok-flow"
+                    doc:id="dad4b241-3f0f-4019-8927-6fabf59cd583"
+                    name="http-204-ok-flow" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow name="database-select-flow">
+        <flow-ref
+            doc:name="inline-count-flow"
+            doc:id="6c002749-1cc7-414d-9546-b9a0688db321"
+            name="inline-count-flow"
+            target="inline-count-flow"
+            targetValue="#[payload[0][0] as String]" />
+        <ee:transform
+            doc:name="Build SQL Statement"
+            doc:id="036ed220-73d1-4510-8f4c-597c54024caf">
+            <ee:message>
+                <ee:set-payload resource="dw/sql-builder.dwl" />
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            message="#[payload]"
+            doc:name="Log SQL" />
+        <db:select
+            doc:name="Execute SQL"
+            doc:id="af36c260-69dd-4742-92c9-6f506ab63442"
+            config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:select>
+        <choice
+            doc:name="Check Response"
+            doc:id="b22287fc-a25d-46dd-86e2-46432ccf1c2a">
+            <when expression="#[sizeOf(payload) == 0]">
+                <flow-ref
+                    doc:name="http-404-not-found-flow"
+                    doc:id="071dd45e-c1aa-4e53-ba88-b3c76b94df82"
+                    name="http-404-not-found-flow" />
+            </when>
+            <otherwise>
+                <flow-ref
+                    doc:name="build-odata-entries-flow"
+                    doc:id="e1a8f8dd-3a51-4c86-b41a-35e669b88061"
+                    name="build-odata-entries-flow" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow name="database-insert-flow">
+        <set-variable
+            value="#[payload]"
+            doc:name="Set requestPayload"
+            doc:id="b229684e-7c5b-44d6-ba98-6e023527bdc2"
+            variableName="requestPayload" />
+        <ee:transform
+            doc:name="Build SQL Statement"
+            doc:id="c2b5c528-12c6-47f2-933c-9d81115ca467">
+            <ee:message>
+                <ee:set-payload resource="dw/sql-builder.dwl" />
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            message="SQL query: #[payload]"
+            doc:name="Log SQL" />
+        <db:insert
+            doc:name="Execute SQL"
+            doc:id="1a7341b4-fe78-4b72-8e62-ea1c9f39818b"
+            config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:insert>
+        <ee:transform
+            doc:name="Build SQL Statement"
+            doc:id="cd3d9824-e5ce-4849-8e85-ae618dfc1612">
+            <ee:message>
+                <ee:set-payload
+                    resource="dw/post-upsert-select.dwl" />
+            </ee:message>
+        </ee:transform>
+        <db:select
+            doc:name="Execute SQL"
+            doc:id="74fb5a0a-a8c3-4320-9deb-b415e4c08051"
+            config-ref="api-database-config">
+            <ee:repeatable-file-store-iterable />
+            <db:sql>#[payload]
+            </db:sql>
+        </db:select>
+        <flow-ref
+            doc:name="build-odata-entries-flow"
+            doc:id="533fa9b7-bf9e-4e96-8301-0ec98ec9534a"
+            name="build-odata-entries-flow" />
+    </sub-flow>
+    <sub-flow name="database-update-flow">
+        <set-variable
+            value="#[payload]"
+            doc:name="Set requestPayload"
+            doc:id="a84397ce-d186-4940-931b-64f1a999eedc"
+            variableName="requestPayload" />
+        <ee:transform
+            doc:name="Build SQL Statement"
+            doc:id="16d75dbc-4ef3-4660-96d3-501807f8c990">
+            <ee:message>
+                <ee:set-payload resource="dw/sql-builder.dwl" />
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            message="SQL Query: #[payload]"
+            doc:name="Log SQL" />
+        <db:update
+            doc:name="Execute SQL"
+            doc:id="61eddaad-199c-496f-9c84-f672e3d575b3"
+            config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:update>
+        <choice
+            doc:name="Check Response"
+            doc:id="98ce1f8b-4dc8-487f-a243-59c27b332602">
+            <when expression="#[payload.affectedRows == 0]">
+                <flow-ref
+                    doc:name="http-404-not-found-flow"
+                    doc:id="6147d3b1-68c5-4cc6-be1e-4a292fe348d3"
+                    name="http-404-not-found-flow" />
+            </when>
+            <otherwise>
+                <flow-ref
+                    doc:name="http-204-ok-flow"
+                    doc:id="8762248f-1674-41d1-bc5a-eb574811e253"
+                    name="http-204-ok-flow" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow
+        name="inline-count-flow"
+        doc:id="48082b4a-dd69-4eb5-ba43-221175d63118">
+        <choice
+            doc:name="Choice"
+            doc:id="215ca10a-e17f-4a72-850f-34ab59486032">
+            <when
+                doc:id="1ab4f4ed-9a41-4c58-9b91-025b6b7ceab3"
+                expression='#[attributes.queryParams != null and attributes.queryParams.inlinecount == "allpages"]'>
+                <ee:transform
+                    doc:name="Build Select Count(*) SQL"
+                    doc:id="bd360717-7475-4adb-97b7-37d9b39bf508">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+import modules::OData
+output application/java
+
+// This DataWeave generates a SQL Select Query from the metadata
+
+// APIkit OData Service creates a variable that contains the table's name 
+var remoteEntityName = OData::remoteEntityName(vars.odata)
+---
+"SELECT COUNT(*) FROM $remoteEntityName"]]>
+                        </ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <db:select
+                    doc:name="Execute SQL"
+                    doc:id="588a3afb-54b1-434c-bb21-a1bd6d680fae"
+                    config-ref="api-database-config">
+                    <db:sql>#[payload]</db:sql>
+                </db:select>
+            </when>
+        </choice>
+    </sub-flow>
+    <sub-flow
+        name="build-odata-entries-flow"
+        doc:id="20b90551-18c5-4e08-b106-c5d6eab1d20e">
+        <ee:transform
+            doc:name="Build entries Object"
+            doc:id="ae8aea15-b4c5-46e2-ad45-c9dc75e494d4">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    entries: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+    <sub-flow
+        name="http-204-ok-flow"
+        doc:id="85ff495f-b3ac-4f31-84d1-57382fb7e880">
+        <set-variable
+            value="204"
+            doc:name="Set HTTP Status 204 (OK)"
+            doc:id="24b9ae5d-ce9a-4231-8e66-44a17022b678"
+            variableName="httpStatus" />
+        <set-payload
+            value="#[null]"
+            doc:name="Set Payload to null"
+            doc:id="59f30584-58d9-49a9-8f6c-7548bc1f79e6" />
+    </sub-flow>
+    <sub-flow
+        name="http-404-not-found-flow"
+        doc:id="bc86f8a1-e8ee-478b-a3a4-7eb78af1ec7b">
+        <set-variable
+            value="404"
+            doc:name="Set HTTP Status 404 (Not Found)"
+            doc:id="37a47d86-3fb3-485f-8e99-163f4b955d01"
+            variableName="httpStatus" />
+        <set-payload
+            value='{ "message": "Resource not found" }'
+            doc:name="Resource not found"
+            doc:id="5161ad0b-e785-4158-8d49-22bd711a53b6"
+            mimeType="application/json" />
+    </sub-flow>
+</mule>

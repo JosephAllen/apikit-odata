@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:db="http://www.mulesoft.org/schema/mule/db"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow
+        name="init-customers-odata"
+        doc:id="5e322511-479b-41c2-95f2-e9f356ebc1a5">
+        <ee:transform
+            doc:name="Init customers"
+            doc:id="3dc37311-2e36-4e33-89f2-6239d29b134e">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="odata"><![CDATA[%dw 2.0
+output application/java
+---
+
+// vars.odata is populated inside APIKIT router automatically 
+// when calling the services with /odata.svc
+// If not present on the endpoint, then the variable needs to be manually 
+// specified.
+
+if(vars.odata == null) 
+({  "fields": ["CustomerID","CompanyName","ContactName","ContactTitle"],
+    "keyNames": "CustomerID",
+    "remoteEntityName": "Customers"
+}) else vars.odata]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </sub-flow>
+    <flow name="delete:\customers\(CustomerID):api-config">
+        <flow-ref
+            doc:name="init-customers-odata"
+            doc:id="e34cc74a-c786-49ec-b46c-8aea33685c27"
+            name="init-customers-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-delete-flow"
+            doc:id="bd29b05f-5f5f-4cf5-9a09-96c0132fd35c"
+            name="database-delete-flow" />
+    </flow>
+    <flow name="get:\customers:api-config">
+        <flow-ref
+            doc:name="init-customers-odata"
+            doc:id="e5635fa6-90b2-4a6d-8ba8-7e43b91da26d"
+            name="init-customers-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-select-flow"
+            doc:id="375580b4-ed42-494b-a06b-238c50950ec6"
+            name="database-select-flow" />
+    </flow>
+    <flow name="get:\customers\(CustomerID):api-config">
+        <flow-ref
+            doc:name="init-customers-odata"
+            doc:id="2a63b615-0938-4aa7-bb98-88a8211d8d6c"
+            name="init-customers-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-select-flow"
+            doc:id="a762350d-ec25-45ea-a872-36696e113ebf"
+            name="database-select-flow" />
+    </flow>
+    <flow
+        name="post:\customers:application\json:api-config"
+        doc:id="248b8e51-fcef-4b50-8bb1-aeaa7a077389">
+        <flow-ref
+            doc:name="init-customers-odata"
+            doc:id="d8409102-94a8-4a00-8c66-c6e3214ff6ef"
+            name="init-customers-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-insert-flow"
+            doc:id="6d3b7d94-9093-46d4-b1d0-1932387b5e6b"
+            name="database-insert-flow" />
+    </flow>
+    <flow
+        name="put:\customers\(CustomerID):application\json:api-config"
+        doc:id="33d8c73b-11d7-40ab-903a-4b6926976ff2">
+        <flow-ref
+            doc:name="init-customers-odata"
+            doc:id="16054600-2f51-49b1-8cba-83c0376eb559"
+            name="init-customers-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-update-flow"
+            doc:id="6354f738-7f2a-420a-931b-1d45155cc604"
+            name="database-update-flow" />
+    </flow>
+</mule>
