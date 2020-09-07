@@ -40,46 +40,10 @@ if(vars.odata == null)
             doc:id="e34cc74a-c786-49ec-b46c-8aea33685c27"
             name="init-customers-odata"
             targetValue="#[vars.odata]" />
-        <ee:transform
-            doc:name="Build Query"
-            doc:id="362cdd0b-e3d1-4a47-a6ae-5d3ac8684b38">
-            <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
-            </ee:message>
-        </ee:transform>
-        <db:delete
-            doc:name="Delete"
-            doc:id="4149984c-bed0-4e9b-9ebd-73237e8814dd"
-            config-ref="api-database-config">
-            <db:sql>#[payload]</db:sql>
-        </db:delete>
-        <choice
-            doc:name="Check Response "
-            doc:id="725ebae3-5fcd-45f1-ac50-96ad65211f6e">
-            <when expression="#[payload == 0]">
-                <set-variable
-                    value="404"
-                    doc:name="Set HTTP Satus"
-                    doc:id="fbdeacbd-3da9-43e2-aaff-7f29d0457152"
-                    variableName="httpStatus" />
-                <set-payload
-                    value='{ "message": "Resource not found" }'
-                    doc:name="Set Payload"
-                    doc:id="81b4670a-c210-427c-a024-a5b91278aef7"
-                    mimeType="application/json" />
-            </when>
-            <otherwise>
-                <set-variable
-                    value="204"
-                    doc:name="Sett HTTP Status 204 (OK)"
-                    doc:id="686a6173-db7e-48e3-9674-19e2934f11fe"
-                    variableName="httpStatus" />
-                <set-payload
-                    value="#[null]"
-                    doc:name="Set Payload"
-                    doc:id="d6bdeda6-c5cb-49f7-ad2b-51f6f7d9ea7d" />
-            </otherwise>
-        </choice>
+        <flow-ref
+            doc:name="db-delete-flow"
+            doc:id="bd29b05f-5f5f-4cf5-9a09-96c0132fd35c"
+            name="db-delete-flow" />
     </flow>
     <flow name="get:\customers:api-config">
         <flow-ref
@@ -88,251 +52,29 @@ if(vars.odata == null)
             name="init-customers-odata"
             targetValue="#[vars.odata]" />
         <flow-ref
-            doc:name="inline-count-flow"
+            doc:name="db-select-flow"
             doc:id="375580b4-ed42-494b-a06b-238c50950ec6"
-            name="inline-count-flow"
-            target="inline-count-flow"
-            targetValue="#[payload[0][0] as String]" />
-        <ee:transform
-            doc:name="Build Query"
-            doc:id="b0c3925d-3c97-486e-9aef-24007f3c7314">
-            <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
-            </ee:message>
-        </ee:transform>
-        <logger
-            level="INFO"
-            message="#[payload]"
-            doc:name="Log Query" />
-        <db:select
-            doc:name="Select"
-            doc:id="a857ec86-6134-43f4-a849-bde90f054c0c"
-            config-ref="api-database-config">
-            <db:sql>#[payload]</db:sql>
-        </db:select>
-        <choice
-            doc:name="Check Response"
-            doc:id="bfee1c81-89bd-49e3-a7e3-c9220b8e1705">
-            <when expression="#[sizeOf(payload) == 0]">
-                <set-variable
-                    value="404"
-                    doc:name="Set HTTP Status"
-                    doc:id="feb5b520-862a-4a44-9116-956cfc03b961"
-                    variableName="httpStatus" />
-                <set-payload
-                    value='{ "message": "Resource not found" }'
-                    doc:name="Set Payload"
-                    doc:id="0ab69cdf-be04-402c-bfef-58b1df128364"
-                    mimeType="application/json" />
-            </when>
-            <otherwise>
-                <ee:transform
-                    doc:name="Build Response"
-                    doc:id="e1e65e03-b69a-4000-962c-f163827c0665">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-    entries: payload
-}]]></ee:set-payload>
-                    </ee:message>
-                </ee:transform>
-            </otherwise>
-        </choice>
+            name="db-select-flow" />
     </flow>
     <flow name="get:\customers\(CustomerID):api-config">
-        <logger level="INFO" doc:name="Logger" doc:id="6c1d036a-2429-4da5-84a6-22f557f20277" message="uriParams: #[attributes.uriParams]"/>
         <flow-ref
             doc:name="init-customers-odata"
-            doc:id="a26069cf-1e2f-481a-af60-e013118d884c"
+            doc:id="2a63b615-0938-4aa7-bb98-88a8211d8d6c"
             name="init-customers-odata"
             targetValue="#[vars.odata]" />
-        <ee:transform
-            doc:name="Build Query"
-            doc:id="125a0251-60cd-47f4-9f7e-9410be212201">
-            <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
-            </ee:message>
-        </ee:transform>
-        <logger
-            level="INFO"
-            message="Running sql query : #[payload]"
-            doc:name="Log Query" />
-        <db:select
-            doc:name="Select"
-            doc:id="69b855f1-fbd0-4cf0-8636-d28199fc94e5"
-            config-ref="api-database-config">
-            <ee:repeatable-file-store-iterable />
-            <db:sql>#[payload]</db:sql>
-        </db:select>
-        <choice
-            doc:name="Check Response"
-            doc:id="90a5d465-7c08-4dcf-9de7-4360d5a32bb5">
-            <when expression="#[sizeOf(payload) == 0]">
-                <set-variable
-                    value="404"
-                    doc:name="Set HTTP Status"
-                    doc:id="41e957c5-e98b-4477-87ab-d18ffb706600"
-                    variableName="httpStatus" />
-                <set-payload
-                    value='{ "message": "Resource not found" }'
-                    doc:name="Set Payload"
-                    doc:id="41a3f1c2-6889-4af8-98bc-e524353ba449"
-                    mimeType="application/json" />
-            </when>
-            <otherwise>
-                <ee:transform
-                    doc:name="Build Response"
-                    doc:id="dee2928c-0ab9-44dc-b0e3-9198f6da68e5">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-    entries: payload
-}]]></ee:set-payload>
-                    </ee:message>
-                </ee:transform>
-            </otherwise>
-        </choice>
+        <flow-ref
+            doc:name="db-select-flow"
+            doc:id="a762350d-ec25-45ea-a872-36696e113ebf"
+            name="db-select-flow" />
     </flow>
-    <flow name="post:\customers:application\json:api-config">
-        <flow-ref
-            doc:name="init-customers-odata"
-            doc:id="7aeea87e-d7a2-4f77-be6e-93eab6d1424b"
-            name="init-customers-odata"
-            targetValue="#[vars.odata]" />
-        <set-variable
-            value="#[payload.CustomerID]"
-            doc:name="Set CustomerID"
-            doc:id="3465b26d-911b-438f-888e-e4a48addc653"
-            variableName="id" />
-        <ee:transform
-            doc:name="Build Query"
-            doc:id="a451caa4-7a2a-4249-b953-b7cf95595204">
-            <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
-            </ee:message>
-        </ee:transform>
-        <logger
-            level="INFO"
-            message="SQL query: #[payload]"
-            doc:name="Log Query" />
-        <db:insert
-            doc:name="Insert"
-            doc:id="66f5a42b-75be-47a2-afc9-11ef9f7ad669"
-            config-ref="api-database-config">
-            <db:sql>#[payload]</db:sql>
-        </db:insert>
-        <ee:transform
-            doc:name="Build Query"
-            doc:id="9e3cd3a5-a2c9-4270-ad83-889fbf983cee">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/java
-
-// APIkit Odata Service creates a variable that contains the fields of your entity. It's a list of string (List<String>)
-var entityFields : Array<String> = vars.odata.fields match {
-    case fields is Array<String> -> fields
-    else -> []
-}
-
-// APIkit Odata Service creates a variable that contains the table's name 
-var remoteEntityName = vars.odata.remoteEntityName match {
-    case remoteEntityName is String -> remoteEntityName
-    else -> ""  
-}
-
-
-// This entity doesn't have an auto-generated PK so PK's value is in original payload.
-var id = vars.id
-
----
-"SELECT " ++ (entityFields joinBy ", ") ++ " FROM $remoteEntityName where CustomerID = '$id'"]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-        <db:select
-            doc:name="Select"
-            doc:id="3cd9a1f7-8558-4fea-8774-09956218f75a"
-            config-ref="api-database-config">
-            <ee:repeatable-file-store-iterable />
-            <db:sql>#[payload]
-            </db:sql>
-        </db:select>
-        <ee:transform
-            doc:name="Build Response"
-            doc:id="a7666535-8339-44b8-ade6-7d9cf099c2ec">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-    entries: payload
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+    <flow
+        name="post:\customers:application\json:api-config"
+        doc:id="248b8e51-fcef-4b50-8bb1-aeaa7a077389">
+        <flow-ref doc:name="init-customers-odata" doc:id="d8409102-94a8-4a00-8c66-c6e3214ff6ef" name="init-customers-odata" targetValue="#[vars.odata]"/>
+        <flow-ref doc:name="db-insert-flow" doc:id="6d3b7d94-9093-46d4-b1d0-1932387b5e6b" name="db-insert-flow"/>
     </flow>
-    <flow name="put:\customers\(CustomerID):application\json:api-config">
-        <flow-ref
-            doc:name="init-customers-odata"
-            doc:id="2b49efd1-317a-4f56-8a4c-1456b14e5851"
-            name="init-customers-odata"
-            targetValue="#[vars.odata]" />
-        <set-variable
-            value="#[payload.CustomerID]"
-            doc:name="Set CustomerID"
-            doc:id="935dab68-ece8-4359-ade3-f0afba70f9b4"
-            variableName="id" />
-        <ee:transform
-            doc:name="Build Query"
-            doc:id="81fa8ba1-4e75-4efb-8e4f-88ca08ffd0cf">
-            <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
-            </ee:message>
-        </ee:transform>
-        <logger
-            level="INFO"
-            message="SQL Query: #[payload]"
-            doc:name="Log Query" />
-        <db:update
-            doc:name="Update"
-            doc:id="121feb93-3265-45af-9a5b-c1a2d71d9a59"
-            config-ref="api-database-config">
-            <db:sql>#[payload]</db:sql>
-        </db:update>
-        <choice
-            doc:name="Check Response"
-            doc:id="7d152b1b-03ca-48cd-995d-b9bfdd350467">
-            <when expression="#[payload.affectedRows == 0]">
-                <set-variable
-                    value="404"
-                    doc:name="Set HTTP Status"
-                    doc:id="60a7b6f8-68aa-45e8-ae21-6f27a83a8c15"
-                    variableName="httpStatus" />
-                <set-payload
-                    value='{ "message": "Resource not found" }'
-                    doc:name="Set Payload"
-                    doc:id="2bae9742-c1f7-445c-bcc6-9edfb9f1f80b"
-                    mimeType="application/json" />
-            </when>
-            <otherwise>
-                <set-variable
-                    value="204"
-                    doc:name="Set HTTP Status"
-                    doc:id="27b8ce0a-4610-4fe4-a900-e496fb981bb3"
-                    variableName="httpStatus" />
-                <ee:transform
-                    doc:name="Set Payload"
-                    doc:id="93a434e8-97ce-49e4-a4ec-1963470012ab">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/java
----
-null]]></ee:set-payload>
-                    </ee:message>
-                </ee:transform>
-            </otherwise>
-        </choice>
+    <flow name="put:\customers\(CustomerID):application\json:api-config" doc:id="33d8c73b-11d7-40ab-903a-4b6926976ff2" >
+        <flow-ref doc:name="init-customers-odata" doc:id="16054600-2f51-49b1-8cba-83c0376eb559" name="init-customers-odata" targetValue="#[vars.odata]"/>
+        <flow-ref doc:name="db-update-flow" doc:id="6354f738-7f2a-420a-931b-1d45155cc604" name="db-update-flow"/>
     </flow>
 </mule>
