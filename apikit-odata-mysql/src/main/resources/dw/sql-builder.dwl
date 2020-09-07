@@ -16,7 +16,7 @@ var keys: String = vars.odata.keyNames match {
 }
 
 //APIkit OData Service creates a variable that contains the table's name
-var remoteEntityName = vars.odata.remoteEntityName match {
+var remoteEntityName: String = vars.odata.remoteEntityName match {
   case remoteEntityName is String -> remoteEntityName
   else -> ""
 }
@@ -39,28 +39,31 @@ var customSelect: String = filters.select match {
   else -> ""
 }
 
-var id = attributes.uriParams.CustomerID match {
+var id: Strings = attributes.uriParams.CustomerID match {
   case id is String -> id
   else -> ""
 }
 
-var whereClause = if (sizeOf(attributes.uriParams) > 0)
-  " WHERE " ++ ((attributes.uriParams pluck (value, key) -> "`$(key)` = '$(value)'") joinBy " AND ")
-else
-  ""
+fun whereClause(): String =
+  if (sizeOf(attributes.uriParams) > 0)
+    " WHERE " ++ ((attributes.uriParams pluck (value, key) -> "`$(key)` = '$(value)'") joinBy " AND ")
+  else
+    ""
 
-fun columns() =
-  ((keySet(payload) map "`$($)`") joinBy ", ")
+fun columns(): String =
+  (keySet(payload) map "`$($)`") joinBy ", "
 
-fun columnValues() =
-  ((valueSet(payload) map "'$($)'") joinBy ", ")
+//Gets  values from the paylioad Obejct
+fun columnValues(): String =
+  (valueSet(payload) map "'$($)'") joinBy ", "
 
 //Transform your payload (myKey1: myValue1, myKey2: myValue2) into something like myKey1 = 'myValue1', myKey2 = 'myValue2'
-fun getUpdates() =
+fun getUpdates(): String =
   (payload pluck (value, key) -> "`$(key)` = '$(value)'") joinBy ", "
 
 //This function transforms your skip and top OData filters into MySQL LIMIT format.
-var toSQLSkipAndTop = (top, skip) -> if (top != "" and skip != "")
+fun toSQLSkipAndTop(top, skip): String =
+  if (top != "" and skip != "")
     " LIMIT $(top) OFFSET $(skip)"
   else if (top == "" and skip != "")
     " LIMIT 2147483647 OFFSET $(skip)"
@@ -72,7 +75,7 @@ var toSQLSkipAndTop = (top, skip) -> if (top != "" and skip != "")
 //Generate the fields you need in the query.
 //It checks for a select function in case you need less filters that you're actually exposing.
 //If there is no select present, it just returns your fields defined in your metadata
-fun selectedFields() =
+fun selectedFields(): String =
   if (customSelect != "")
     (customSelect splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ",")
   else
@@ -83,11 +86,12 @@ fun selectedFields() =
 ((select splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ","))
 else
 entityFields) map "`$($)`") joinBy ", "*/
-var SQL = attributes.method match {
-  case "DELETE" -> "DELETE " ++ " FROM $(remoteEntityName)"
-  case "GET" -> "SELECT " ++ selectedFields() ++ " FROM $(remoteEntityName)"
-  case "POST" -> "INSERT " ++ " INTO $(remoteEntityName)" ++ " ($(columns())) VALUES ($(columnValues()))"
-  case "PUT" -> "UPDATE " ++ "$(remoteEntityName)" ++ " SET $(getUpdates())"
-}
+fun SQL(): String =
+  attributes.method match {
+    case "DELETE" -> "DELETE " ++ " FROM $(remoteEntityName)"
+    case "GET" -> "SELECT " ++ selectedFields() ++ " FROM $(remoteEntityName)"
+    case "POST" -> "INSERT " ++ " INTO $(remoteEntityName)" ++ " ($(columns())) VALUES ($(columnValues()))"
+    case "PUT" -> "UPDATE " ++ "$(remoteEntityName)" ++ " SET $(getUpdates())"
+  }
 ---
-SQL ++ whereClause ++ toSQLSkipAndTop(top, skip)
+SQL() ++ whereClause() ++ toSQLSkipAndTop(top, skip)
