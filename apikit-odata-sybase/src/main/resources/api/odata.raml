@@ -1,0 +1,80 @@
+#%RAML 1.0 Library
+uses:
+  odata: libraries/odataLibrary.raml
+
+types:
+  Contacts:
+    description: Customer table form the demo SQL Anywhere demo database
+    (odata.remote): Contacts
+    properties:
+      ID:
+        description: Primary key for a Contact
+        format: int32
+        type: number
+        (odata.key): true
+        (odata.nullable): false
+      Surname:
+        maxLength: 20
+        type: string
+        (odata.key): false
+        (odata.nullable): false
+      GivenName:
+        maxLength: 20
+        type: string
+        (odata.key): false
+        (odata.nullable): false
+      Title:
+        maxLength: 34
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      Street:
+        maxLength: 30
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      City:
+        maxLength: 20
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      State:
+        maxLength: 16
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      Country:
+        maxLength: 16
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      PostalCode:
+        maxLength: 10
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      Phone:
+        maxLength: 13
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      Fax:
+        maxLength: 13
+        required: false
+        type: string
+        (odata.key): false
+        (odata.nullable): true
+      CustomerID:
+        description: Foriegn Key to a Customer
+        format: int32
+        required: false
+        type: number
+        (odata.key): false
+        (odata.nullable): true

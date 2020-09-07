@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+                        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <flow name="delete:\Contacts\(ID):api-config">
+        <flow-ref
+            doc:name="contacts-delete-id-flow"
+            doc:id="207d8cc7-8cc0-4f3f-941d-deff41f612da"
+            name="contacts-delete-id-flow" />
+    </flow>
+    <flow name="get:\Contacts:api-config">
+        <flow-ref
+            doc:name="contacts-get-flow"
+            doc:id="be212818-853c-4e52-8cba-9e267ff51e37"
+            name="contacts-get-flow" />
+    </flow>
+    <flow name="get:\Contacts\(ID):api-config">
+        <flow-ref
+            doc:name="contacts-get-id-flow"
+            doc:id="5229d805-f057-4911-bb90-3ffabf7916e0"
+            name="contacts-get-id-flow" />
+    </flow>
+    <flow name="post:\Contacts:application\json:api-config">
+        <flow-ref
+            doc:name="contacts-post-id-flow"
+            doc:id="d639c592-dba5-4adc-85e8-e1f93f3001c1"
+            name="contacts-post-id-flow" />
+    </flow>
+    <flow name="put:\Contacts\(ID):application\json:api-config">
+        <flow-ref
+            doc:name="contacts-put-id-flow"
+            doc:id="52a7d608-262b-484d-8147-b7796d820fe9"
+            name="contacts-put-id-flow" />
+    </flow>
+</mule>

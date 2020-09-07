@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:db="http://www.mulesoft.org/schema/mule/db"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+                        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+                        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <sub-flow
+        name="contacts-odata-init"
+        doc:id="0e32321a-dd8e-409f-b8c1-b588544a6fb2">
+        <ee:transform
+            doc:name="set vars.odata"
+            doc:id="a2d66ae6-b357-4f20-97f3-03769377b3a4">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="odata"><![CDATA[%dw 2.0
+output application/java
+---
+
+// vars.odata is populated inside APIKIT router automatically 
+// when calling the services with /odata.svc
+// If not present on the endpoint, then the variable needs to be manually 
+// specified.
+
+if(vars.odata == null) 
+({  "fields": ["ID","Surname","GivenName","Title","Street","City","State","Country","PostalCode","Phone","Fax","CustomerID"],
+    "keyNames": ["ID"],
+    "remoteEntityName": "Contacts"
+}) else vars.odata]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </sub-flow>
+    <sub-flow
+        name="contacts-delete-id-flow"
+        doc:id="f6670867-f949-4fea-a044-99bbb5a620ec">
+        <logger
+            level="INFO"
+            doc:name="Logger"
+            doc:id="af07528a-8ccb-497c-8c66-29eda800755b"
+            message="odemos-delete-id-flow Called" />
+        <flow-ref
+            doc:name="contacts-odata-init"
+            doc:id="f60d27f1-2359-4b94-8374-d705a73abe2c"
+            name="contacts-odata-init"
+            targetValue="#[vars.odata]" />
+        <ee:transform
+            doc:name="Build Query"
+            doc:id="d354df9b-9dbb-44a8-a16a-2234f263ee36">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="DEBUG"
+            doc:name="Logger"
+            doc:id="b8d77faa-4e7c-4603-b7ff-6983ba0ba7c7"
+            message="#[payload]" />
+        <ee:transform
+            doc:name="DB DELETE GOES HERE"
+            doc:id="243127c2-6df0-4df7-a8ee-9c1ed3130a7c">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <choice
+            doc:name="Affected entries == 0?"
+            doc:id="724f0f34-8a4e-4d83-989a-e7ca2a4e8c03">
+            <when expression="#[payload == 0]">
+                <set-variable
+                    value="404"
+                    doc:name="Set HTTP Satus"
+                    doc:id="52dbf471-b6bd-4efd-9b61-d179c8db2180"
+                    variableName="httpStatus" />
+                <set-payload
+                    value='{ "message": "Resource not found" }'
+                    doc:name="Set Payload"
+                    doc:id="a090a1ce-ade2-4ebf-93ca-c8771219cfbd"
+                    mimeType="application/json" />
+            </when>
+            <otherwise>
+                <set-payload
+                    value="#[null]"
+                    doc:name="Set Payload"
+                    doc:id="f5f86855-ee42-4363-bed6-9bbb1fe67c3a" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow
+        name="contacts-get-flow"
+        doc:id="6d2bc5a7-b52d-4b5f-a71f-68793e849cc8">
+        <flow-ref
+            doc:name="contacts-odata-init"
+            doc:id="47e8e46e-30a8-4d40-a10f-f2871f662257"
+            name="contacts-odata-init"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="inline-count-flow"
+            doc:id="1612318f-5faa-4c65-a5e7-a8639505fbb3"
+            name="inline-count-flow" targetValue="#[payload[0][0] as String]"/>
+        <ee:transform
+            doc:name="Build Query"
+            doc:id="1ea04610-9676-4509-86bf-ea3b8be1a0dc">
+            <ee:message>
+                <ee:set-payload resource="dw/SelectCollection.dwl" />
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            doc:name="Log Query"
+            doc:id="771b78ea-226d-4f68-9779-f5561071958e"
+            message="#[payload]" />
+        <db:select doc:name="Execute script" doc:id="bb92ca32-c04e-4eb2-b60f-1527cc0e5eb9" config-ref="api-database-config" transactionalAction="NOT_SUPPORTED" queryTimeout="60">
+            <db:sql ><![CDATA[#[payload]]]></db:sql>
+        </db:select>
+        <logger level="INFO" doc:name="Log Results" doc:id="867d9c40-e812-4422-8956-82df2c48f9de" message="#[%dw 2.0
+output application/json
+---
+payload]"/>
+        <choice
+            doc:name="Check Response"
+            doc:id="d1884a55-1926-431f-8dec-9244d23a247f">
+            <when expression="#[sizeOf(payload) == 0]">
+                <set-variable
+                    value="404"
+                    doc:name="Set HTTP Status"
+                    doc:id="479c3c0c-b509-40f7-b102-c756d8508df2"
+                    variableName="httpStatus" />
+                <set-payload
+                    value='{ "message": "Resource not found" }'
+                    doc:name="Set Payload"
+                    doc:id="07cf8cf6-d43a-4982-ac14-bc1bd90feedd"
+                    mimeType="application/json" />
+            </when>
+            <otherwise>
+                <ee:transform
+                    doc:name="Build Response"
+                    doc:id="6427d15c-31a6-446e-b275-6f3c2d2fdc30">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    entries: payload
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow
+        name="contacts-get-id-flow"
+        doc:id="31787665-eb66-4970-8df8-64a1697dafdc">
+        <logger
+            level="INFO"
+            doc:name="Logger"
+            doc:id="2df2e74f-e97e-4918-ab4b-434594d36b57"
+            message="odemos-get-id-flow Called" />
+        <flow-ref
+            doc:name="contacts-odata-init"
+            doc:id="68829e3c-12c4-469d-b5ea-c819bce9ee98"
+            name="contacts-odata-init"
+            targetValue="#[vars.odata]" />
+        <ee:transform
+            doc:name="Build Query"
+            doc:id="810b16d9-6e3a-46fb-9daf-99670c9ea31b">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            doc:name="Log Query"
+            doc:id="7a5d77e9-1b44-4189-9b9f-fedaf1445de0"
+            message="Running sql query : #[payload]" />
+        <logger
+            level="INFO"
+            doc:name="DB Select goes Here"
+            doc:id="7a9b29a6-6507-4a46-b2a3-6bbbf73a8a1d" />
+        <choice
+            doc:name="Check Response"
+            doc:id="4703c60f-a9ff-4379-aa80-8991ddc6dce7">
+            <when expression="#[sizeOf(payload) == 0]">
+                <set-variable
+                    value="404"
+                    doc:name="Set HTTP Status"
+                    doc:id="8cbc8a81-91a8-4907-ae41-3bb83a4433f9"
+                    variableName="httpStatus" />
+                <set-payload
+                    value='{ "message": "Resource not found" }'
+                    doc:name="Set Payload"
+                    doc:id="5e3bbbd0-f9df-4fb5-981d-362de53a960e"
+                    mimeType="application/json" />
+            </when>
+            <otherwise>
+                <ee:transform
+                    doc:name="Build Response"
+                    doc:id="c80a196e-8245-45d7-9d36-d14f028a5228">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    entries: payload
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow
+        name="contacts-post-id-flow"
+        doc:id="1e2eb06b-ff3e-4c3d-8b45-c6b9606f9bbb">
+        <logger
+            level="INFO"
+            doc:name="Logger"
+            doc:id="9639bba5-f8a8-447e-9fe1-6581aab4bda2"
+            message="odemos-post-id-flow Called" />
+        <flow-ref
+            doc:name="contacts-odata-init"
+            doc:id="8aa67e5e-880e-4f89-bc69-c90fb2c7740b"
+            name="contacts-odata-init" />
+        <set-variable
+            value="payload.Id"
+            doc:name="Set Id"
+            doc:id="9a365801-a3d4-4b6d-a713-3f062d01fd7a"
+            variableName="id" />
+        <ee:transform
+            doc:name="Build Query"
+            doc:id="c8896b13-18de-46b3-98ff-8fe8c43a753a">
+            <ee:message>
+                <ee:set-payload resource="dw/CreateRecord.dwl" />
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            doc:name="Log Query"
+            doc:id="d7449ce3-e924-4c44-b624-29e4bbc3160a"
+            message="SQL query: #[payload]" />
+        <logger
+            level="INFO"
+            doc:name="DB Insert Goes Here"
+            doc:id="3bea1b58-4e9a-4f11-917c-b31ae9a368b8" />
+        <ee:transform
+            doc:name="Build Query"
+            doc:id="6dc07456-7e4e-4482-b46a-c1f138a6b5d3">
+            <ee:message>
+                <ee:set-payload
+                    resource="dw/SelectSingleRecord.dwl" />
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            doc:name="Select Goes here"
+            doc:id="86da053c-6f64-4310-adff-cef980642b41" />
+        <ee:transform
+            doc:name="Build Response"
+            doc:id="51c41e2e-3ba0-4681-9b04-fa87bd8fcefb">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    entries: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+    <sub-flow
+        name="contacts-put-id-flow"
+        doc:id="e7416b1d-29de-4217-966c-018491dbb278">
+        <logger
+            level="INFO"
+            doc:name="Logger"
+            doc:id="dd0e5c5e-5736-4a89-83a9-30ab80b6e303"
+            message="odemos-put-id-flow Called" />
+        <flow-ref
+            doc:name="contacts-odata-init"
+            doc:id="9ca81a31-b09d-4f84-8f0b-c99bebeb5b13"
+            name="contacts-odata-init"
+            targetValue="#[vars.odata]" />
+        <set-variable
+            value="payload.Id"
+            doc:name="Set Id"
+            doc:id="73f08520-01b5-4fd5-bc25-de73eec149ea"
+            variableName="id" />
+        <ee:transform
+            doc:name="Build Query"
+            doc:id="2c921cf1-fd17-4191-81ad-5f27e1576d7b">
+            <ee:message>
+                <ee:set-payload resource="dw/UpdateRecord.dwl" />
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            doc:name="Log Query"
+            doc:id="b17d1457-bb55-4f56-9f06-5e2d2cc72f6e"
+            message="SQL Query: #[payload]" />
+        <logger
+            level="INFO"
+            doc:name="DB Update Goes Here"
+            doc:id="79637948-43aa-4b7d-b5e3-badaa3edefc2" />
+        <choice
+            doc:name="Check Response"
+            doc:id="595030a6-d429-41e6-974a-b4a291989185">
+            <when expression="#[payload.affectedRows == 0]">
+                <set-variable
+                    value="404"
+                    doc:name="Set HTTP Status"
+                    doc:id="dc10862b-2bbb-484b-9ce4-ff30a42c8a60"
+                    variableName="httpStatus" />
+                <set-payload
+                    value='{ "message": "Resource not found" }'
+                    doc:name="Set Payload"
+                    doc:id="761df115-eaa7-4c5c-8f16-b082d6690455"
+                    mimeType="application/json" />
+            </when>
+            <otherwise>
+                <set-variable
+                    value="204"
+                    doc:name="Set HTTP Status"
+                    doc:id="f41c608a-7fed-40e9-bf1d-30317972c408"
+                    variableName="httpStatus" />
+                <ee:transform
+                    doc:name="Set Payload"
+                    doc:id="d9b5acfc-87c1-47b8-b957-4df66c6168db">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+null]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+</mule>
