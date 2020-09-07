@@ -23,6 +23,17 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
             password="${ds.db.password}"
             database="${ds.db.database}" />
     </db:config>
+    <db:config
+        name="api-database-config-mysql"
+        doc:name="Database Config"
+        doc:id="cfb21c27-2e7e-451e-820b-96204a192871">
+        <db:my-sql-connection
+            host="${ds.db.host}"
+            port="${ds.db.port}"
+            user="${ds.db.user}"
+            password="${ds.db.password}"
+            database="${ds.db.database}" />
+    </db:config>
     <http:listener-config name="api-http-listener-config">
         <http:listener-connection
             host="0.0.0.0"
