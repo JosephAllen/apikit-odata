@@ -4,15 +4,13 @@ import modules::OData
 
 output application/java  
 
-var odata = vars.odata
-
-var entityFields: Array<String> = OData::fields(odata)
+var entityFields: Array<String> = OData::fields(vars.odata)
 
 //APIkit OData Service creates a variable that contains the keys of your entity
-var keys: String = OData::keyNames(odata)
+var keys: String = OData::keyNames(vars.odata)
 
 //APIkit OData Service creates a variable that contains the table's name
-var remoteEntityName: String = OData::remoteEntityName(odata)
+var remoteEntityName: String = OData::remoteEntityName(vars.odata)
 
 //APIkit OData Service puts your oData filters into the queryParams
 var filters = attributes.queryParams
