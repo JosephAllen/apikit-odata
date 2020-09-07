@@ -46,4 +46,4 @@ target/
 .mule/**/*
 .DS_Store
 velocity.log
-**/mule-configuration.properties
+**mule-configuration.properties
