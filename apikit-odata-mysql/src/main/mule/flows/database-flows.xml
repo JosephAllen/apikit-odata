@@ -8,12 +8,12 @@
     xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-    <sub-flow name="db-delete-flow">
+    <sub-flow name="database-delete-flow">
         <ee:transform
             doc:name="Build Query"
             doc:id="ef5b639f-e795-434b-b3d8-589b16d3f163">
             <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
+                <ee:set-payload resource="dw/sql-builder.dwl" />
             </ee:message>
         </ee:transform>
         <db:delete
@@ -50,12 +50,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
             </otherwise>
         </choice>
     </sub-flow>
-    <sub-flow name="db-select-flow">
-        <flow-ref
-            doc:name="init-customers-odata"
-            doc:id="1d4ada3f-18c1-47dc-bc02-bd4776014dd6"
-            name="init-customers-odata"
-            targetValue="#[vars.odata]" />
+    <sub-flow name="database-select-flow">
         <flow-ref
             doc:name="inline-count-flow"
             doc:id="6c002749-1cc7-414d-9546-b9a0688db321"
@@ -66,7 +61,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
             doc:name="Build Query"
             doc:id="036ed220-73d1-4510-8f4c-597c54024caf">
             <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
+                <ee:set-payload resource="dw/sql-builder.dwl" />
             </ee:message>
         </ee:transform>
         <logger
@@ -110,12 +105,7 @@ output application/json
             </otherwise>
         </choice>
     </sub-flow>
-    <sub-flow name="db-insert-flow">
-        <flow-ref
-            doc:name="init-customers-odata"
-            doc:id="6b61e58a-7cd1-48f3-b457-50c3ae9cd8c7"
-            name="init-customers-odata"
-            targetValue="#[vars.odata]" />
+    <sub-flow name="database-insert-flow">
         <set-variable
             value="#[payload.CustomerID]"
             doc:name="Set CustomerID"
@@ -125,7 +115,7 @@ output application/json
             doc:name="Build Query"
             doc:id="c2b5c528-12c6-47f2-933c-9d81115ca467">
             <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
+                <ee:set-payload resource="dw/sql-builder.dwl" />
             </ee:message>
         </ee:transform>
         <logger
@@ -186,12 +176,7 @@ output application/json
             </ee:message>
         </ee:transform>
     </sub-flow>
-    <sub-flow name="db-update-flow">
-        <flow-ref
-            doc:name="init-customers-odata"
-            doc:id="a2da176b-03c2-45a1-bb6c-60141060e46c"
-            name="init-customers-odata"
-            targetValue="#[vars.odata]" />
+    <sub-flow name="database-update-flow">
         <set-variable
             value="#[payload.CustomerID]"
             doc:name="Set CustomerID"
@@ -201,7 +186,7 @@ output application/json
             doc:name="Build Query"
             doc:id="16d75dbc-4ef3-4660-96d3-501807f8c990">
             <ee:message>
-                <ee:set-payload resource="dw/db-sql-builder.dwl" />
+                <ee:set-payload resource="dw/sql-builder.dwl" />
             </ee:message>
         </ee:transform>
         <logger

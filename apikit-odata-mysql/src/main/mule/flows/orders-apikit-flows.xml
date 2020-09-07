@@ -36,27 +36,66 @@ if(vars.odata == null)
     <flow
         name="delete:\orders\OrderID_(OrderID)-ShipName_(ShipName):api-config"
         doc:id="7eb108e4-7b83-4e6a-ba5d-8151725a7807">
-        <flow-ref doc:name="init-orders-odata" doc:id="70f2e314-b79e-438d-adc7-7da3a6a79bae" name="init-orders-odata" targetValue="#[vars.odata]"/>
-        <flow-ref doc:name="db-delete-flow" doc:id="51f9d0a9-be23-4cc2-8742-b7e52da543d0" name="db-delete-flow"/>
+        <flow-ref
+            doc:name="init-orders-odata"
+            doc:id="70f2e314-b79e-438d-adc7-7da3a6a79bae"
+            name="init-orders-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-delete-flow"
+            doc:id="51f9d0a9-be23-4cc2-8742-b7e52da543d0"
+            name="database-delete-flow" />
     </flow>
     <flow
         name="get:\orders:api-config"
         doc:id="a3a07ecd-8674-48f4-b264-22835e5a89cc">
-        <flow-ref doc:name="init-orders-odata" doc:id="dd27abf8-e3b3-43ee-b72c-088be0308625" name="init-orders-odata" targetValue="#[vars.odata]"/>
-        <flow-ref doc:name="db-select-flow" doc:id="63f07eb7-b445-4d1e-af5e-3256dbd76b6c" name="db-select-flow"/>
+        <flow-ref
+            doc:name="init-orders-odata"
+            doc:id="dd27abf8-e3b3-43ee-b72c-088be0308625"
+            name="init-orders-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-select-flow"
+            doc:id="63f07eb7-b445-4d1e-af5e-3256dbd76b6c"
+            name="database-select-flow" />
     </flow>
     <flow
         name="get:\orders\OrderID_(OrderID)-ShipName_(ShipName):api-config"
         doc:id="444b53ea-db95-4a55-b4d0-17fb66346b41">
-        <flow-ref doc:name="init-orders-odata" doc:id="9f3a3d4f-cecd-4b63-bed9-24e7389b78f0" name="init-orders-odata" targetValue="#[vars.odata]"/>
-        <flow-ref doc:name="db-select-flow" doc:id="9a3cbdbb-2798-418e-beda-c09ab87aa401" name="db-select-flow"/>
+        <flow-ref
+            doc:name="init-orders-odata"
+            doc:id="9f3a3d4f-cecd-4b63-bed9-24e7389b78f0"
+            name="init-orders-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-select-flow"
+            doc:id="9a3cbdbb-2798-418e-beda-c09ab87aa401"
+            name="database-select-flow" />
     </flow>
-    <flow name="post:\orders:application\json:api-config" doc:id="14f0d68d-f9bd-4889-8e16-f7fa7e88c4c5" >
-        <flow-ref doc:name="init-orders-odata" doc:id="4470dfa9-e186-43bf-8877-facb8be94a49" name="init-orders-odata" targetValue="#[vars.odata]"/>
-        <flow-ref doc:name="db-insert-flow" doc:id="5912a4c4-088d-49b0-8230-c1b13bf7336e" name="db-insert-flow"/>
+    <flow
+        name="post:\orders:application\json:api-config"
+        doc:id="14f0d68d-f9bd-4889-8e16-f7fa7e88c4c5">
+        <flow-ref
+            doc:name="init-orders-odata"
+            doc:id="4470dfa9-e186-43bf-8877-facb8be94a49"
+            name="init-orders-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-insert-flow"
+            doc:id="5912a4c4-088d-49b0-8230-c1b13bf7336e"
+            name="database-insert-flow" />
     </flow>
-    <flow name="put:\orders\OrderID_(OrderID)-ShipName_(ShipName):application\json:api-config" doc:id="fbc07a79-72c3-4f1e-9443-ee121d1edf6e" >
-        <flow-ref doc:name="init-orders-odata" doc:id="67d5e684-07d6-41c1-99c2-0deae8d41253" name="init-orders-odata" targetValue="#[vars.odata]"/>
-        <flow-ref doc:name="db-update-flow" doc:id="9d4d1fa7-8a23-4b54-9978-125b9f8d20fb" name="db-update-flow"/>
+    <flow
+        name="put:\orders\OrderID_(OrderID)-ShipName_(ShipName):application\json:api-config"
+        doc:id="fbc07a79-72c3-4f1e-9443-ee121d1edf6e">
+        <flow-ref
+            doc:name="init-orders-odata"
+            doc:id="67d5e684-07d6-41c1-99c2-0deae8d41253"
+            name="init-orders-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-update-flow"
+            doc:id="9d4d1fa7-8a23-4b54-9978-125b9f8d20fb"
+            name="database-update-flow" />
     </flow>
 </mule>

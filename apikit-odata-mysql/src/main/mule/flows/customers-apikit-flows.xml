@@ -41,9 +41,9 @@ if(vars.odata == null)
             name="init-customers-odata"
             targetValue="#[vars.odata]" />
         <flow-ref
-            doc:name="db-delete-flow"
+            doc:name="database-delete-flow"
             doc:id="bd29b05f-5f5f-4cf5-9a09-96c0132fd35c"
-            name="db-delete-flow" />
+            name="database-delete-flow" />
     </flow>
     <flow name="get:\customers:api-config">
         <flow-ref
@@ -52,9 +52,9 @@ if(vars.odata == null)
             name="init-customers-odata"
             targetValue="#[vars.odata]" />
         <flow-ref
-            doc:name="db-select-flow"
+            doc:name="database-select-flow"
             doc:id="375580b4-ed42-494b-a06b-238c50950ec6"
-            name="db-select-flow" />
+            name="database-select-flow" />
     </flow>
     <flow name="get:\customers\(CustomerID):api-config">
         <flow-ref
@@ -63,18 +63,34 @@ if(vars.odata == null)
             name="init-customers-odata"
             targetValue="#[vars.odata]" />
         <flow-ref
-            doc:name="db-select-flow"
+            doc:name="database-select-flow"
             doc:id="a762350d-ec25-45ea-a872-36696e113ebf"
-            name="db-select-flow" />
+            name="database-select-flow" />
     </flow>
     <flow
         name="post:\customers:application\json:api-config"
         doc:id="248b8e51-fcef-4b50-8bb1-aeaa7a077389">
-        <flow-ref doc:name="init-customers-odata" doc:id="d8409102-94a8-4a00-8c66-c6e3214ff6ef" name="init-customers-odata" targetValue="#[vars.odata]"/>
-        <flow-ref doc:name="db-insert-flow" doc:id="6d3b7d94-9093-46d4-b1d0-1932387b5e6b" name="db-insert-flow"/>
+        <flow-ref
+            doc:name="init-customers-odata"
+            doc:id="d8409102-94a8-4a00-8c66-c6e3214ff6ef"
+            name="init-customers-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-insert-flow"
+            doc:id="6d3b7d94-9093-46d4-b1d0-1932387b5e6b"
+            name="database-insert-flow" />
     </flow>
-    <flow name="put:\customers\(CustomerID):application\json:api-config" doc:id="33d8c73b-11d7-40ab-903a-4b6926976ff2" >
-        <flow-ref doc:name="init-customers-odata" doc:id="16054600-2f51-49b1-8cba-83c0376eb559" name="init-customers-odata" targetValue="#[vars.odata]"/>
-        <flow-ref doc:name="db-update-flow" doc:id="6354f738-7f2a-420a-931b-1d45155cc604" name="db-update-flow"/>
+    <flow
+        name="put:\customers\(CustomerID):application\json:api-config"
+        doc:id="33d8c73b-11d7-40ab-903a-4b6926976ff2">
+        <flow-ref
+            doc:name="init-customers-odata"
+            doc:id="16054600-2f51-49b1-8cba-83c0376eb559"
+            name="init-customers-odata"
+            targetValue="#[vars.odata]" />
+        <flow-ref
+            doc:name="database-update-flow"
+            doc:id="6354f738-7f2a-420a-931b-1d45155cc604"
+            name="database-update-flow" />
     </flow>
 </mule>
