@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+    xmlns:db="http://www.mulesoft.org/schema/mule/db"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow
+        name="init-orders-odata"
+        doc:id="052b55da-4ca6-46d5-8c66-94037aa14b22">
+        <ee:transform
+            doc:name="Init orders"
+            doc:id="a1a288d9-fc8a-45df-8ec8-cdcdaf7f28d9">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="odata"><![CDATA[%dw 2.0
+output application/java
+---
+
+// vars.odata is populated inside APIKIT router automatically 
+// when calling the services with /odata.svc
+// If not present on the endpoint, then the variable needs to be manually 
+// specified.
+
+if(vars.odata == null) 
+({  "fields": ["OrderID","ShipName","ShipAddress","OrderDate", "Freight", "Price","Priority"],
+    "keyNames": "OrderID,ShipName",
+    "remoteEntityName": "Orders"
+}) else vars.odata]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </sub-flow>
+    <flow name="delete:\orders\OrderID_(OrderID)-ShipName_(ShipName):api-config">
+        <flow-ref doc:name="init-orders-odata" doc:id="ffd50d9d-f5e2-4a98-a739-22bfc4c4a6fd" name="init-orders-odata" targetValue="#[vars.odata]" />
+        <ee:transform doc:name="Build Query" doc:id="4817394c-f2f0-4d08-8ce5-6022c802b8d3">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+// This DataWeave generates a MySQL Delete Query from your metadata
+
+
+// APIkit Odata Service creates a variable that contains the table's name 
+var remoteEntityName = vars.odata.remoteEntityName match {
+    case remoteEntityName is String -> remoteEntityName
+    else -> ""  
+}
+
+
+var ShipName = attributes.uriParams.ShipName match {
+    case ShipName is String -> ShipName
+    else -> ""  
+}
+
+var OrderID = attributes.uriParams.OrderID match {
+    case OrderID is String -> OrderID
+    else -> ""  
+}
+
+
+---
+"DELETE FROM $remoteEntityName WHERE  OrderID = '$OrderID' and ShipName = '$ShipName'" 
+ 
+
+
+]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <db:delete doc:name="Delete" doc:id="0ad74a12-444c-46d6-a5b7-e7dd5075aa2e" config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:delete>
+        <choice doc:name="Check Response" doc:id="76a2e206-d7a2-4f75-a951-44cf00f03bcd">
+            <when expression="#[payload == 0]">
+                <set-variable value="404" doc:name="Set HTTP Status" doc:id="0326cd99-b724-4016-8be9-02a2a99daacd" variableName="httpStatus" />
+                <set-payload value='{ "message": "Resource not found" }' doc:name="Set Payload" doc:id="3d28b413-d9f4-41ed-9da8-75b7de062c81" mimeType="application/json" />
+            </when>
+            <otherwise>
+                <set-payload value="#[null]" doc:name="Set Payload" doc:id="e1ed5a16-1297-46c5-9ee4-49f5fb3337cc" />
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="get:\orders:api-config">
+        <flow-ref doc:name="init-orders-odata" doc:id="ea0bc4d4-bd56-4207-aff4-21a8d1519601" name="init-orders-odata" targetValue="#[vars.odata]" />
+        <ee:transform doc:name="Build Query" doc:id="5b2ac91a-7506-4dd9-ac0a-147d529e1400">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+
+// This DataWeave generates a MySQL Select Query from your metadata
+
+// APIkit Odata Service creates a variable that contains the fields of your entity. It's a list of string (List<String>)
+var entityFields : Array<String> = vars.odata.fields match {
+    case fields is Array<String> -> fields
+    else -> []
+}
+
+
+// APIkit Odata Service creates a variable that contains the keys of your entity
+var keys : String = vars.odata.keyNames match {
+    case keyNames is String -> keyNames
+    else -> ""
+}
+
+// APIkit Odata Service creates a variable that contains the table's name 
+var remoteEntityName = vars.odata.remoteEntityName match {
+    case remoteEntityName is String -> remoteEntityName
+    else -> ""  
+}
+
+
+
+// Generate the fields you need in the query. 
+// It checks for a select function in case you need less filters that you're actually exposing. 
+// If there is no select present, it just returns your fields defined in your metadata
+var generateSqlFields = (select) -> ((if (select != "" )( (select splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ",")) else entityFields)  map "`$`" ) joinBy ", "
+
+
+// Transform oDataFilters into MySQL Filters
+var odataFilterToSQLFilter = (odataFilter) -> 
+      
+     odataFilter replace "eq null" with "is null" 
+     replace "ne null" with "is not null" 
+     replace " eq " with " = " 
+     replace " ne " with " != " 
+     replace " gt " with "> " 
+     replace " lt " with " < " 
+     replace " ge " with ">= " 
+     replace " le " with " <= " 
+     replace " and " with " AND " 
+     replace " or " with " OR " 
+
+
+
+// APIkit Odata Service puts your oData filters into the queryParams
+var filters = attributes.queryParams
+
+var top : String = filters.top match {
+    case top is String -> top
+    else -> ""
+} 
+
+var skip : String = filters.skip match {
+    case skip is String -> skip
+    else -> ""
+} 
+
+var select : String = filters.select match {
+    case select is String -> select
+    else -> ""
+}
+
+var filter : String = filters.filter match {
+    case filter is String -> filter
+    else -> ""
+}
+
+var orderby : String = filters.orderby match {
+    case orderby is String -> orderby
+    else -> ""
+}
+
+// This function transforms your orderby oData filters into MySQL Order by format. 
+// Transforms something like orderby=myField, ASC into ORDER BY myField, ASC
+// If no orderby is present, it just returns an empty string
+var toSQLOrderBy = (orderby ) -> if(orderby != "") (" ORDER BY " ++ (orderby replace "=" with " ")) else ""
+
+// This function transforms your skip and top oData filters into MySQL LIMIT format. 
+var toSQLSkipAndTop = (top, skip) -> if(top != "" and skip != "") " LIMIT $top OFFSET $skip" else if (top == "" and skip != "") " LIMIT 2147483647 OFFSET $skip" else if (top != "" and skip == "") " LIMIT $top"  else ""
+
+// Generate the where part of your query.
+var toSQLWhere = (odataFilter) -> if(odataFilter !=  "") " WHERE " ++ odataFilterToSQLFilter(odataFilter) else ""
+
+---
+
+"SELECT " ++ generateSqlFields(select) ++ " FROM $remoteEntityName"
+ ++ ( 
+    (toSQLWhere(filter)) ++
+    (toSQLOrderBy(orderby)) ++
+    (toSQLSkipAndTop(top,skip))
+ ) 
+ 
+]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger level="INFO" doc:name="Log Query" doc:id="c08d0c47-637e-4ed0-be2c-30f434be422f" message="#[payload]" />
+        <db:select doc:name="Select" doc:id="9a59c42f-a46d-49db-bfa1-f34594a36b54" config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:select>
+        <ee:transform doc:name="Build Response" doc:id="c89a8c3a-8188-40da-8cf3-a678a3c66439">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    entries: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <flow-ref doc:name="Get inlineCount" doc:id="9a0591b0-7c41-4049-979d-0e4190ca25d7" name="get:\orders\OrderID_(OrderID)-ShipName_(ShipName):api-config" target="inline-count-flow" targetValue="#[payload]" />
+        <logger level="INFO" doc:name="Logger" doc:id="0fc8ab0c-71aa-4361-a243-d3b6375195b1" />
+    </flow>
+    <flow name="get:\orders\OrderID_(OrderID)-ShipName_(ShipName):api-config">
+        <flow-ref doc:name="init-orders-odata" doc:id="913912e3-dd0c-47e8-b0b6-86fba8378a11" name="init-orders-odata" targetValue="#[vars.odata]" />
+        <ee:transform doc:name="Build Query" doc:id="4cc76951-8971-4ba1-b55a-6258a2df93b4">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+
+
+// APIkit Odata Service creates a variable that contains the fields of your entity. It's a list of string (List<String>)
+var entityFields : Array<String> = vars.odata.fields match {
+    case fields is Array<String> -> fields
+    else -> []
+}
+
+
+// APIkit Odata Service creates a variable that contains the keys of your entity
+var keys : String = vars.odata.keyNames match {
+    case keyNames is String -> keyNames
+    else -> ""
+}
+
+// APIkit Odata Service creates a variable that contains the table's name 
+var remoteEntityName = vars.odata.remoteEntityName match {
+    case remoteEntityName is String -> remoteEntityName
+    else -> ""  
+}
+
+
+// APIkit Odata Service puts your oData filters into the queryParams
+var filters = attributes.queryParams
+
+var select : String = filters.select match {
+    case select is String -> select
+    else -> ""
+}
+
+var orderId = attributes.uriParams.OrderID match {
+    case id is String -> id
+    else -> ""  
+}
+
+var shipName = attributes.uriParams.ShipName match {
+    case id is String -> id
+    else -> ""  
+}
+
+
+// Generate the fields you need in the query. 
+// It checks for a select function in case you need less filters that you're actually exposing. 
+// If there is no select present, it just returns your fields defined in your metadata
+var generateSqlFields = (select) -> ((if (select != "" )( (select splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ",")) else entityFields)  map "`$`" ) joinBy ", "
+---
+
+"SELECT " ++ generateSqlFields(select) ++ " FROM $remoteEntityName WHERE OrderID = '$orderId' and  ShipName = '$shipName'"
+]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger level="INFO" doc:name="Log Query" doc:id="c158f00f-87ff-496f-9dac-ac6dd2d81f10" message="Running sql query : #[payload]" />
+        <db:select doc:name="Select" doc:id="939cfc48-03d1-4ea5-9ec7-bdd1b8e78896" config-ref="api-database-config">
+            <ee:repeatable-file-store-iterable />
+            <db:sql>#[payload]</db:sql>
+        </db:select>
+        <choice doc:name="Check Response" doc:id="961dff35-3cea-4395-b49b-115dc961da90">
+            <when expression="#[sizeOf(payload) == 0]">
+                <set-variable value="404" doc:name="Set HTTP Status" doc:id="2f68bc86-5f99-43c6-a7d9-b0f846cc2970" variableName="httpStatus" />
+                <set-payload value='{ "message": "Resource not found" }' doc:name="Set Payload" doc:id="71358981-eccc-46a5-9147-c0ca783a2b18" mimeType="application/json" />
+            </when>
+            <otherwise>
+                <ee:transform doc:name="Build Response" doc:id="e6920625-6dd2-414c-960d-73eb08b8926a">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    entries: payload
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="post:\orders:application\json:api-config">
+        <flow-ref doc:name="init-orders-odata" doc:id="e42ad07c-c025-4abe-a0c5-4956030ce0c0" name="init-orders-odata" targetValue="#[vars.odata]" />
+        <set-variable value="#[payload.ShipName]" doc:name="Set ShipName" doc:id="2f0f2d67-3f96-4987-811c-3382c47d6023" variableName="shipName" />
+        <set-variable value="#[payload.OrderID]" doc:name="Set OrderID" doc:id="6e2d2e67-551e-4d45-8b91-277cda44e4c7" variableName="orderId" />
+        <ee:transform doc:name="Build Query" doc:id="8c1202cc-5e0d-498e-8eba-011487738a64">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+// This DataWeave generates a MySQL Insert Query from your payload and metadata
+
+// APIkit Odata Service creates a variable that contains the table's name 
+var remoteEntityName = vars.odata.remoteEntityName match {
+    case remoteEntityName is String -> remoteEntityName
+    else -> ""  
+}
+
+// Transform your payload into something like this: { myKey1: 'myValue1', myKey2: 'myValue2'}.
+var valuesFromPayload = {
+    keys: payload pluck $$,
+    values: payload pluck "'$'"
+}
+
+// Then use joinBy to transform your keys and values into a CSV style
+var columns = ( (valuesFromPayload.keys map "`$`" ) joinBy ", ") // myKey1, myKey2
+var values = (valuesFromPayload.values joinBy ", ") // 'myValue1', 'myValue2'
+---
+// final expression is: INSERT INTO $remoteEntityName (myKey1, myKey2) VALUES ('myValue1', 'myValue2')
+"INSERT INTO $remoteEntityName ($columns) VALUES ($values)" 
+ 
+
+]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger level="INFO" doc:name="Log Query" doc:id="59299b21-34f6-4fd6-9f82-027907953e33" message="SQL query: #[payload]" />
+        <db:insert doc:name="Insert" doc:id="01cc5faf-bdff-4687-9fde-1bd59d7b017a" config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:insert>
+        <ee:transform doc:name="Build Query" doc:id="04848885-5391-4b39-bb8f-df3bc980f743">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+
+// APIkit Odata Service creates a variable that contains the fields of your entity. It's a list of string (List<String>)
+var entityFields : Array<String> = vars.odata.fields match {
+    case fields is Array<String> -> fields
+    else -> []
+}
+
+// APIkit Odata Service creates a variable that contains the table's name 
+var remoteEntityName = vars.odata.remoteEntityName match {
+    case remoteEntityName is String -> remoteEntityName
+    else -> ""  
+}
+
+var orderId = vars.orderId
+
+
+
+// This entity doesn't have an auto-generated PK so PK's value is in original payload.
+var shipName = vars.shipName
+
+---
+"SELECT " ++ (entityFields joinBy ", ") ++ " FROM $remoteEntityName where OrderID = '$orderId' and ShipName = '$shipName'"
+]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <db:select doc:name="Select" doc:id="9b3580a9-d764-4d33-8560-934841346386" config-ref="api-database-config">
+            <ee:repeatable-file-store-iterable />
+            <db:sql>#[payload]
+            </db:sql>
+        </db:select>
+        <ee:transform doc:name="Build Response" doc:id="405566f9-fb95-4918-96fc-226a0cf5c097">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    entries: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow
+        name="put:\orders\OrderID_(OrderID)-ShipName_(ShipName):application\json:api-config">
+        <flow-ref
+            doc:name="init-orders-odata"
+            doc:id="d952a89e-f8c6-40f6-9b59-08254d03c9b2"
+            name="init-orders-odata"
+            targetValue="#[vars.odata]" />
+        <ee:transform
+            doc:name="Build Query"
+            doc:id="a4cc8ea5-85d2-47af-ba24-81c20973ba1b">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+// This DataWeave generates a MySQL Update Query from your metadata for a particular entity
+
+// APIkit Odata Service creates a variable that contains the table's name 
+var remoteEntityName = vars.odata.remoteEntityName match {
+    case remoteEntityName is String -> remoteEntityName
+    else -> ""  
+}
+
+
+var ShipName = attributes.uriParams.ShipName match {
+    case ShipName is String -> ShipName
+    else -> ""  
+}
+
+var OrderID = attributes.uriParams.OrderID match {
+    case OrderID is String -> OrderID
+    else -> ""  
+}
+
+
+
+// Transform your payload (myKey1: myValue1, myKey2: myValue2) into something like myKey1 = 'myValue1', myKey2 = 'myValue2'
+var sqlValues = (payload mapObject ((value, key) -> '$key': "$key = '$value'")) pluck ((value, key, index) -> value ) joinBy  ","
+---
+"UPDATE $remoteEntityName SET $sqlValues WHERE OrderID = '$OrderID' and ShipName = '$ShipName'"
+]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger
+            level="INFO"
+            doc:name="Log Query"
+            doc:id="31ea8dc5-feac-44f8-beb8-3abfe12efdc0"
+            message="SQL Query: #[payload]" />
+        <db:update
+            doc:name="Update"
+            doc:id="0c6728ba-b08d-4ab5-901e-ffc773113a5e"
+            config-ref="api-database-config">
+            <db:sql>#[payload]</db:sql>
+        </db:update>
+        <choice
+            doc:name="Check Response"
+            doc:id="93525b2d-e710-4d1f-bb1c-d9687d23e85f">
+            <when expression="#[payload.affectedRows == 0]">
+                <set-variable
+                    value="404"
+                    doc:name="Set HTTP Status"
+                    doc:id="b2db981b-e4a0-4bbf-b0bf-c30efaebe0fb"
+                    variableName="httpStatus" />
+                <set-payload
+                    value='{ "message": "Resource not found" }'
+                    doc:name="Set Payload"
+                    doc:id="9b33c5a0-279a-4039-bb04-7e0e6d2710e8"
+                    mimeType="application/json" />
+            </when>
+            <otherwise>
+                <set-variable
+                    value="204"
+                    doc:name="Set HTTP Status"
+                    doc:id="eb76eb1c-d9c9-43d7-ad4b-c0191c45205b"
+                    variableName="httpStatus" />
+                <ee:transform
+                    doc:name="Set Payload"
+                    doc:id="2e750823-f871-4f1b-bded-2e17521829a5">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+null]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
