@@ -73,15 +73,10 @@ fun toSQLSkipAndTop(top, skip): String =
 //If there is no select present, it just returns your fields defined in your metadata
 fun selectedFields(): String =
   if (customSelect != "")
-    (customSelect splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ",")
+    ((customSelect splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ",")) map "[$($)]" joinBy ", "
   else
     entityFields map "[$($)]" joinBy ", "
 
-//case "GET" -> "SELECT " ++ generateSqlFields(customSelect) ++ " FROM $(remoteEntityName)"
-/*var generateSqlFields = (select) -> ((if (select != "")
-((select splitBy ",") -- (keys splitBy ",") ++ (keys splitBy ","))
-else
-entityFields) map "`$($)`") joinBy ", "*/
 fun SQL(): String =
   attributes.method match {
     case "DELETE" -> "DELETE " ++ " FROM $(remoteEntityName)"
