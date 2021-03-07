@@ -1,9 +1,9 @@
 #%RAML 1.0 Library
 uses:
-  odata: libraries/odataLibrary.raml
+  odata: odataLibrary.raml
 
 types:
-  customers: !include types/customer.raml
+  customers: !include ../types/customer.raml
   orders:
     (odata.remote): Orders
     properties:
