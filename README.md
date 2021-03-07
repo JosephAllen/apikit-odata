@@ -1,2 +1,2 @@
 # apikit-odata
-Mule Soft Repo Showing how to user APIKit with OData
+Mule Soft Repo Showing how to user APIKit with OData 1
