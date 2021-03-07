@@ -27,9 +27,9 @@ output application/java
 // specified.
 
 if(vars.odata == null) 
-({  "fields": ["CustomerID","CompanyName","ContactName","ContactTitle"],
+({  "fields": ["CustomerID","CompanyName","LastName","Title"],
     "keyNames": "CustomerID",
-    "remoteEntityName": "Customers"
+    "remoteEntityName": "Customer"
 }) else vars.odata]]></ee:set-variable>
             </ee:variables>
         </ee:transform>

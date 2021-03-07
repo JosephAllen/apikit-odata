@@ -1,0 +1,30 @@
+#%RAML 1.0 DataType
+uses:
+  odata: ../libraries/odataLibrary.raml
+
+type: object
+(odata.remote): Customer
+properties:
+  CustomerID:
+    type: string
+    (odata.key): true
+    (odata.nullable): false
+    maxLength: 5
+  CompanyName:
+    type: string
+    (odata.nullable): true
+    (odata.key): false
+    maxLength: 128
+    required: false
+  LastName:
+    type: string
+    (odata.nullable): true
+    (odata.key): false
+    maxLength: 50
+    required: false
+  Title:
+    type: string
+    (odata.nullable): true
+    (odata.key): false
+    maxLength: 8
+    required: false
